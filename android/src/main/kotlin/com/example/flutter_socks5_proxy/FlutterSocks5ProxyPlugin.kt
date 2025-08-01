@@ -24,7 +24,7 @@ class FlutterSocks5ProxyPlugin : FlutterPlugin, MethodCallHandler {
     }
 
     private lateinit var channel: MethodChannel
-    private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     
     private var proxyClient: OkHttpClient? = null
     private var normalClient: OkHttpClient? = null
@@ -106,16 +106,20 @@ class FlutterSocks5ProxyPlugin : FlutterPlugin, MethodCallHandler {
                 ProxyStatistics.reset()
                 
                 Log.d(TAG, "Connected to proxy: $host:$port")
-                result.success(mapOf(
-                    "success" to true,
-                    "message" to "Connected to $host:$port"
-                ))
+                withContext(Dispatchers.Main) {
+                    result.success(mapOf(
+                        "success" to true,
+                        "message" to "Connected to $host:$port"
+                    ))
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "Connection failed", e)
-                result.success(mapOf(
-                    "success" to false,
-                    "error" to (e.message ?: "Connection failed")
-                ))
+                withContext(Dispatchers.Main) {
+                    result.success(mapOf(
+                        "success" to false,
+                        "error" to (e.message ?: "Connection failed")
+                    ))
+                }
             }
         }
     }
@@ -173,25 +177,31 @@ class FlutterSocks5ProxyPlugin : FlutterPlugin, MethodCallHandler {
                     val city = jsonBody.optString("city")
                     val country = jsonBody.optString("country")
                     
-                    result.success(mapOf(
-                        "success" to true,
-                        "ip" to ip,
-                        "location" to "$city, $country",
-                        "response" to body
-                    ))
+                    withContext(Dispatchers.Main) {
+                        result.success(mapOf(
+                            "success" to true,
+                            "ip" to ip,
+                            "location" to "$city, $country",
+                            "response" to body
+                        ))
+                    }
                 } else {
                     ProxyStatistics.recordFailure()
-                    result.success(mapOf(
-                        "success" to false,
-                        "error" to "HTTP ${response.code}"
-                    ))
+                    withContext(Dispatchers.Main) {
+                        result.success(mapOf(
+                            "success" to false,
+                            "error" to "HTTP ${response.code}"
+                        ))
+                    }
                 }
             } catch (e: Exception) {
                 ProxyStatistics.recordFailure()
-                result.success(mapOf(
-                    "success" to false,
-                    "error" to (e.message ?: "Test failed")
-                ))
+                withContext(Dispatchers.Main) {
+                    result.success(mapOf(
+                        "success" to false,
+                        "error" to (e.message ?: "Test failed")
+                    ))
+                }
             }
         }
     }
@@ -239,18 +249,24 @@ class FlutterSocks5ProxyPlugin : FlutterPlugin, MethodCallHandler {
                 
                 if (response.isSuccessful) {
                     ProxyStatistics.recordSuccess(responseBody.length.toLong())
-                    result.success(mapOf(
-                        "statusCode" to response.code,
-                        "body" to responseBody,
-                        "headers" to response.headers.toMultimap()
-                    ))
+                    withContext(Dispatchers.Main) {
+                        result.success(mapOf(
+                            "statusCode" to response.code,
+                            "body" to responseBody,
+                            "headers" to response.headers.toMultimap()
+                        ))
+                    }
                 } else {
                     ProxyStatistics.recordFailure()
-                    result.error("HTTP_ERROR", "HTTP ${response.code}", responseBody)
+                    withContext(Dispatchers.Main) {
+                        result.error("HTTP_ERROR", "HTTP ${response.code}", responseBody)
+                    }
                 }
             } catch (e: Exception) {
                 ProxyStatistics.recordFailure()
-                result.error("REQUEST_FAILED", e.message, null)
+                withContext(Dispatchers.Main) {
+                    result.error("REQUEST_FAILED", e.message, null)
+                }
             }
         }
     }
@@ -297,19 +313,25 @@ class FlutterSocks5ProxyPlugin : FlutterPlugin, MethodCallHandler {
                     ProxyStatistics.recordSuccess(responseBody.length.toLong())
                     val jsonResponse = JSONObject(responseBody)
                     
-                    result.success(mapOf(
-                        "jsonrpc" to jsonResponse.optString("jsonrpc"),
-                        "id" to jsonResponse.optInt("id"),
-                        "result" to jsonResponse.opt("result"),
-                        "error" to jsonResponse.optJSONObject("error")?.toString()
-                    ))
+                    withContext(Dispatchers.Main) {
+                        result.success(mapOf(
+                            "jsonrpc" to jsonResponse.optString("jsonrpc"),
+                            "id" to jsonResponse.optInt("id"),
+                            "result" to jsonResponse.opt("result"),
+                            "error" to jsonResponse.optJSONObject("error")?.toString()
+                        ))
+                    }
                 } else {
                     ProxyStatistics.recordFailure()
-                    result.error("RPC_ERROR", "HTTP ${response.code}", responseBody)
+                    withContext(Dispatchers.Main) {
+                        result.error("RPC_ERROR", "HTTP ${response.code}", responseBody)
+                    }
                 }
             } catch (e: Exception) {
                 ProxyStatistics.recordFailure()
-                result.error("RPC_FAILED", e.message, null)
+                withContext(Dispatchers.Main) {
+                    result.error("RPC_FAILED", e.message, null)
+                }
             }
         }
     }

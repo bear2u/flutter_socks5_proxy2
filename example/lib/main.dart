@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_socks5_proxy/flutter_socks5_proxy.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(const MyApp());
@@ -38,10 +41,12 @@ class _MyHomePageState extends State<MyHomePage> {
   bool _isConnecting = false;
   bool _isConnected = false;
   String _statusMessage = 'Not connected';
+  String _connectedIP = '';
 
   @override
   void initState() {
     super.initState();
+    _loadSavedServerInfo();
     _checkConnectionStatus();
   }
 
@@ -50,6 +55,25 @@ class _MyHomePageState extends State<MyHomePage> {
     _hostController.dispose();
     _portController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadSavedServerInfo() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedHost = prefs.getString('socks5_host');
+    final savedPort = prefs.getInt('socks5_port');
+    
+    if (savedHost != null && savedPort != null) {
+      setState(() {
+        _hostController.text = savedHost;
+        _portController.text = savedPort.toString();
+      });
+    }
+  }
+  
+  Future<void> _saveServerInfo(String host, int port) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('socks5_host', host);
+    await prefs.setInt('socks5_port', port);
   }
 
   Future<void> _checkConnectionStatus() async {
@@ -88,11 +112,30 @@ class _MyHomePageState extends State<MyHomePage> {
       final result = await _proxy.connect(host, port);
       
       if (result.success) {
+        // 성공적으로 연결되면 서버 정보 저장
+        await _saveServerInfo(host, port);
         await _checkConnectionStatus();
+        
+        // ipify API로 접속한 IP 확인 (프록시를 통해)
+        try {
+          final response = await _proxy.request('https://api.ipify.org/?format=json');
+          print("response => $response");
+          if (response['body'] != null) {
+            final bodyData = json.decode(response['body']);
+            print("data => $bodyData");
+            setState(() {
+              _connectedIP = "API 호출" + bodyData['ip'] ?? '';
+            });
+          }
+        } catch (e) {
+          print('Failed to get IP: $e');
+        }
+        
         _showMessage('Connected successfully!');
       } else {
         setState(() {
           _statusMessage = result.message ?? 'Connection failed';
+          _connectedIP = '';
         });
         _showMessage(result.message ?? 'Connection failed');
       }
@@ -121,6 +164,7 @@ class _MyHomePageState extends State<MyHomePage> {
         setState(() {
           _isConnected = false;
           _statusMessage = 'Disconnected';
+          _connectedIP = '';
         });
         _showMessage('Disconnected successfully');
       } else {
@@ -188,9 +232,24 @@ class _MyHomePageState extends State<MyHomePage> {
                         ),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: Text(
-                            _statusMessage,
-                            style: Theme.of(context).textTheme.bodyLarge,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _statusMessage,
+                                style: Theme.of(context).textTheme.bodyLarge,
+                              ),
+                              if (_connectedIP.isNotEmpty)
+                                const SizedBox(height: 4),
+                              if (_connectedIP.isNotEmpty)
+                                Text(
+                                  'Connected IP: $_connectedIP',
+                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: Colors.blue,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
                       ],

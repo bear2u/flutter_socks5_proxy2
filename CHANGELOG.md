@@ -1,3 +1,8 @@
+## 1.0.1
+
+* Updated repository URL to GitHub
+* Added proper repository metadata for pub.dev
+
 ## 1.0.0
 
 * Initial release of flutter_socks5_proxy

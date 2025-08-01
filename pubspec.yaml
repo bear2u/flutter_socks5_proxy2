@@ -1,9 +1,9 @@
 name: flutter_socks5_proxy
 description: A Flutter package for easy SOCKS5 proxy configuration with simple connect/disconnect API.
-version: 1.0.0
-homepage: https://github.com/yourusername/flutter_socks5_proxy
-repository: https://github.com/yourusername/flutter_socks5_proxy
-issue_tracker: https://github.com/yourusername/flutter_socks5_proxy/issues
+version: 1.0.1
+homepage: https://github.com/bear2u/flutter_socks5_proxy2
+repository: https://github.com/bear2u/flutter_socks5_proxy2
+issue_tracker: https://github.com/bear2u/flutter_socks5_proxy2/issues
 
 environment:
   sdk: '>=2.19.0 <4.0.0'
